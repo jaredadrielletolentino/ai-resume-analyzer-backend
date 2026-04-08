@@ -1,4 +1,4 @@
-import "./config/env.js"; // Load environment variables
+import "./config/env.js";
 
 import express from "express";
 import cors from "cors";
@@ -6,6 +6,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import connectDB from "./config/database.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
+import jobRoutes from "./routes/jobRoutes.js";
+import authRoutes from "./routes/authRoutes.js"; 
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -16,8 +18,8 @@ app.use(cors());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { error: "Too many requests, please try again later." }
 });
 app.use("/api/", limiter);
@@ -30,9 +32,11 @@ app.use(express.urlencoded({ extended: true }));
 connectDB();
 
 // Routes
-app.use("/api/resume", resumeRoutes);
+app.use("/api/auth", authRoutes);        
+app.use("/api/resume", resumeRoutes);     
+app.use("/api/jobs", jobRoutes);          
 
-// Health check endpoint
+// Health check endpoint (public)
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
@@ -44,4 +48,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📝 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
 });
