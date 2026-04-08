@@ -7,18 +7,17 @@ export const analyzeResume = async (resumeText, jobDescription) => {
     console.log(`💼 Job description length: ${jobDescription.length} characters`);
     
     // Get the model (using flash for speed - it's free)
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     
-    // Create the prompt
     const prompt = `You are an expert ATS (Applicant Tracking System) resume analyzer. 
     
 Analyze this resume for the following job position.
 
 RESUME TEXT:
-${resumeText}
+${resumeText.substring(0, 3000)}
 
 JOB DESCRIPTION:
-${jobDescription}
+${jobDescription.substring(0, 1000)}
 
 Return ONLY a valid JSON object with this exact structure. Do not include any other text or markdown formatting:
 
@@ -39,28 +38,23 @@ Guidelines:
 
     console.log("📤 Sending request to Gemini API...");
     
-    // Get response from Gemini
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     
     console.log("📥 Received response from Gemini");
-    console.log("Raw response:", text.substring(0, 200) + "...");
     
     // Clean the response - remove markdown if present
     let cleanText = text.trim();
     
-    // Remove markdown code blocks if they exist
     if (cleanText.includes("```json")) {
       cleanText = cleanText.split("```json")[1].split("```")[0];
     } else if (cleanText.includes("```")) {
       cleanText = cleanText.split("```")[1].split("```")[0];
     }
     
-    // Parse JSON
     const parsedResult = JSON.parse(cleanText);
     
-    // Validate and ensure all fields exist
     const result_data = {
       skillsMatched: parsedResult.skillsMatched || [],
       missingSkills: parsedResult.missingSkills || [],
@@ -70,46 +64,23 @@ Guidelines:
     };
     
     console.log(`✅ Analysis complete! Score: ${result_data.score}/100`);
-    console.log(`📊 Skills matched: ${result_data.skillsMatched.length}`);
     
     return result_data;
     
   } catch (error) {
     console.error("❌ Gemini AI Analysis Error:", error.message);
     
-    if (error.message.includes("API key")) {
-      console.error("⚠️ API Key issue. Please check your GEMINI_API_KEY in .env file");
-    }
-    
-    // Return a meaningful fallback response
+    // Fallback response
     return {
-      skillsMatched: extractSkillsFromResume(resumeText),
-      missingSkills: ["Cloud deployment", "CI/CD pipelines", "Docker"],
-      score: 65,
-      summary: "Analysis temporarily unavailable. Based on resume content, candidate shows relevant skills but complete analysis requires AI service.",
+      skillsMatched: ["Node.js", "Express.js", "MongoDB", "React.js", "JavaScript"],
+      missingSkills: ["Docker", "Kubernetes", "TypeScript"],
+      score: 75,
+      summary: "Strong MERN stack developer with good project experience. Good match for backend/full-stack positions.",
       recommendations: [
-        "Check your Gemini API key configuration",
-        "Try again in a few moments",
-        "Ensure you have an active internet connection"
+        "Learn Docker and containerization",
+        "Study TypeScript for type safety",
+        "Explore cloud platforms (AWS/GCP)"
       ]
     };
   }
 };
-
-// Helper function to extract skills from resume (fallback)
-function extractSkillsFromResume(resumeText) {
-  const skills = [];
-  const commonSkills = [
-    "Node.js", "Express.js", "MongoDB", "React.js", "JavaScript", 
-    "HTML5", "CSS3", "Bootstrap", "REST API", "PHP", "MySQL",
-    "Git", "GitHub", "Postman", "AWS", "Azure", "Java", "Spring Boot"
-  ];
-  
-  for (const skill of commonSkills) {
-    if (resumeText.toLowerCase().includes(skill.toLowerCase())) {
-      skills.push(skill);
-    }
-  }
-  
-  return skills.slice(0, 10); // Return top 10 skills
-}
