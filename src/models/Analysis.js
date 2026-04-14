@@ -12,6 +12,25 @@ const analysisSchema = new mongoose.Schema(
       required: true,
       maxlength: 2000,
     },
+    contactInfo: {
+      email: {
+        type: String,
+        trim: true,
+        lowercase: true,
+      },
+      phone: {
+        type: String,
+        trim: true,
+      },
+      name: {
+        type: String,
+        trim: true,
+      },
+      location: {
+        type: String,
+        trim: true,
+      },
+    },
     result: {
       skillsMatched: {
         type: [String],
@@ -50,5 +69,7 @@ const analysisSchema = new mongoose.Schema(
 // Create indexes for efficient queries
 analysisSchema.index({ createdAt: -1 });
 analysisSchema.index({ "result.score": -1 });
+analysisSchema.index({ "contactInfo.email": 1 });
+analysisSchema.index({ "contactInfo.phone": 1 });
 
 export default mongoose.model("Analysis", analysisSchema);

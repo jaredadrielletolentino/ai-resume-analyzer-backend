@@ -1,5 +1,6 @@
 import { extractTextFromPDF } from "../services/pdfService.js";
 import { analyzeResume } from "../services/aiService.js";
+import { ContactExtractor } from "../services/contactExtractor.js";
 import Analysis from "../models/Analysis.js";
 import fs from "fs/promises";
 
@@ -19,15 +20,20 @@ export const analyzeResumeHandler = async (req, res, next) => {
     const resumeText = await extractTextFromPDF(filePath);
     console.log(`✅ Text extracted: ${resumeText.length} characters`);
     
+    // Extract contact information
+    console.log("🔍 Extracting contact information...");
+    const contactInfo = ContactExtractor.extractAll(resumeText);
+    
     console.log("🤖 Sending to AI for analysis...");
     // Analyze with AI
     const analysisResult = await analyzeResume(resumeText, jobDescription);
     
     console.log("💾 Saving to database...");
-    // Save to database
+    // Save to database with contact info
     const analysis = await Analysis.create({
       resumeText: resumeText.substring(0, 5000),
       jobDescription,
+      contactInfo, // Save contact information
       result: analysisResult,
       metadata: {
         fileName: req.file.originalname,
@@ -38,10 +44,11 @@ export const analyzeResumeHandler = async (req, res, next) => {
     
     console.log(`✅ Analysis complete! ID: ${analysis._id}`);
     
-    // Return success response
+    // Return success response with contact info
     res.status(200).json({
       success: true,
       analysisId: analysis._id,
+      contactInfo, // Include contact info in response
       ...analysisResult,
       metadata: {
         processingTimeMs: Date.now() - startTime,
@@ -102,6 +109,54 @@ export const getAnalysisById = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: analysis,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Search candidates by email or phone
+export const searchCandidates = async (req, res, next) => {
+  try {
+    const { email, phone, name } = req.query;
+    
+    const query = {};
+    if (email) query["contactInfo.email"] = { $regex: email, $options: "i" };
+    if (phone) query["contactInfo.phone"] = { $regex: phone };
+    if (name) query["contactInfo.name"] = { $regex: name, $options: "i" };
+    
+    const candidates = await Analysis.find(query)
+      .select("contactInfo result.score result.skillsMatched createdAt")
+      .sort({ createdAt: -1 })
+      .limit(50);
+    
+    res.status(200).json({
+      success: true,
+      count: candidates.length,
+      data: candidates,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get candidate by email
+export const getCandidateByEmail = async (req, res, next) => {
+  try {
+    const { email } = req.params;
+    
+    const candidate = await Analysis.findOne({ "contactInfo.email": email });
+    
+    if (!candidate) {
+      return res.status(404).json({
+        error: "Candidate not found",
+        message: `No candidate found with email: ${email}`,
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: candidate,
     });
   } catch (error) {
     next(error);
