@@ -1,19 +1,23 @@
 {
   "name": "ai-resume-analyzer-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI Resume Analyzer Backend API",
   "main": "src/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jaredadrielletolentino/ai-resume-analyzer-backend.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["resume", "analyzer", "ai", "gemini", "job", "matching"],
+  "author": "Jared Adriel Tolentino",
   "license": "ISC",
   "type": "module",
   "bugs": {
