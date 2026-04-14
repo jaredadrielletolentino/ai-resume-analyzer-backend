@@ -42,11 +42,13 @@ export const createJob = async (req, res, next) => {
 
 export const getAllJobs = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, active = true, experienceLevel, employmentType } = req.query;
+    const { page = 1, limit = 100, active = true, experienceLevel, employmentType } = req.query;
 
     const query = { isActive: active === "true" };
     if (experienceLevel) query.experienceLevel = experienceLevel;
     if (employmentType) query.employmentType = employmentType;
+
+    console.log(`📊 Fetching jobs with query:`, query); // Debug log
 
     const jobs = await Job.find(query)
       .sort({ createdAt: -1 })
@@ -54,6 +56,8 @@ export const getAllJobs = async (req, res, next) => {
       .skip((parseInt(page) - 1) * parseInt(limit));
 
     const total = await Job.countDocuments(query);
+
+    console.log(`✅ Found ${jobs.length} active jobs out of ${total} total`); // Debug log
 
     res.status(200).json({
       success: true,

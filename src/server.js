@@ -16,12 +16,22 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 
-// Rate limiting
+// Updated Rate limiting - 600 requests per 30 minutes
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { error: "Too many requests, please try again later." }
+  windowMs: 30 * 60 * 1000, // 30 minutes
+  max: 600, // 600 requests per windowMs
+  message: { 
+    error: "Too many requests", 
+    message: "Please try again after 30 minutes" 
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: (req) => {
+    // Skip rate limiting for health check endpoint
+    return req.path === '/health';
+  }
 });
+
 app.use("/api/", limiter);
 
 // Body parsing middleware
@@ -36,7 +46,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/resume", resumeRoutes);     
 app.use("/api/jobs", jobRoutes);          
 
-// Health check endpoint (public)
+// Health check endpoint (public) - bypasses rate limiting
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
@@ -49,4 +59,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📝 Health check: http://localhost:${PORT}/health`);
   console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
+  console.log(`⏱️  Rate limit: 600 requests per 30 minutes`);
 });
